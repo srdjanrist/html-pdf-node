@@ -1,27 +1,25 @@
-const puppeteer = require('puppeteer');
-var Promise = require('bluebird');
-const hb = require('handlebars')
-const inlineCss = require('inline-css')
-module.exports
+const puppeteer = require("puppeteer");
+var Promise = require("bluebird");
+const hb = require("handlebars");
+const inlineCss = require("inline-css");
+module.exports;
 async function generatePdf(file, options, callback) {
   // we are using headless mode
-  let args = [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-  ];
-  if(options.args) {
+  let args = ["--no-sandbox", "--disable-setuid-sandbox"];
+  if (options.args) {
     args = options.args;
     delete options.args;
   }
 
   const browser = await puppeteer.launch({
-    args: args
+    args: args,
+    headless: "new",
   });
   const page = await browser.newPage();
 
-  if(file.content) {
-    data = await inlineCss(file.content, {url:"/"});
-    console.log("Compiling the template with handlebars")
+  if (file.content) {
+    data = await inlineCss(file.content, { url: "/" });
+    console.log("Compiling the template with handlebars");
     // we have compile our code with handlebars
     const template = hb.compile(data, { strict: true });
     const result = template(data);
@@ -29,65 +27,65 @@ async function generatePdf(file, options, callback) {
 
     // We set the page content as the generated html by handlebars
     await page.setContent(html, {
-      waitUntil: 'networkidle0', // wait for page to load completely
+      waitUntil: "networkidle0", // wait for page to load completely
     });
   } else {
     await page.goto(file.url, {
-      waitUntil:[ 'load', 'networkidle0'], // wait for page to load completely
+      waitUntil: ["load", "networkidle0"], // wait for page to load completely
     });
   }
 
   return Promise.props(page.pdf(options))
-    .then(async function(data) {
-       await browser.close();
+    .then(async function (data) {
+      await browser.close();
 
-       return Buffer.from(Object.values(data));
-    }).asCallback(callback);
+      return Buffer.from(Object.values(data));
+    })
+    .asCallback(callback);
 }
 
 async function generatePdfs(files, options, callback) {
   // we are using headless mode
-  let args = [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-  ];
-  if(options.args) {
+  let args = ["--no-sandbox", "--disable-setuid-sandbox"];
+  if (options.args) {
     args = options.args;
     delete options.args;
   }
   const browser = await puppeteer.launch({
-    args: args
+    args: args,
+    headless: "new",
   });
   let pdfs = [];
   const page = await browser.newPage();
-  for(let file of files) {
-    if(file.content) {
-      data = await inlineCss(file.content, {url:"/"})
-      console.log("Compiling the template with handlebars")
+  for (let file of files) {
+    if (file.content) {
+      data = await inlineCss(file.content, { url: "/" });
+      console.log("Compiling the template with handlebars");
       // we have compile our code with handlebars
       const template = hb.compile(data, { strict: true });
       const result = template(data);
       const html = result;
       // We set the page content as the generated html by handlebars
       await page.setContent(html, {
-        waitUntil: 'networkidle0', // wait for page to load completely
+        waitUntil: "networkidle0", // wait for page to load completely
       });
     } else {
       await page.goto(file.url, {
-        waitUntil: 'networkidle0', // wait for page to load completely
+        waitUntil: "networkidle0", // wait for page to load completely
       });
     }
     let pdfObj = JSON.parse(JSON.stringify(file));
-    delete pdfObj['content'];
-    pdfObj['buffer'] = Buffer.from(Object.values(await page.pdf(options)));
+    delete pdfObj["content"];
+    pdfObj["buffer"] = Buffer.from(Object.values(await page.pdf(options)));
     pdfs.push(pdfObj);
   }
 
   return Promise.resolve(pdfs)
-    .then(async function(data) {
-       await browser.close();
-       return data;
-    }).asCallback(callback);
+    .then(async function (data) {
+      await browser.close();
+      return data;
+    })
+    .asCallback(callback);
 }
 
 module.exports.generatePdf = generatePdf;
